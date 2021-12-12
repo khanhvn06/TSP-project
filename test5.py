@@ -200,22 +200,70 @@ for i in range(N):
 idxM = [(i, j) for i in range(1,N+1,1) for j in range(1,N+1,1) ]
 idxd = [i for i in range (1,N+1,1)  ]
 idxf = [(i, j) for i in range(1,N+1,1) for j in range(1,N+1,1) ]
+idxt = [i for i in range (1,N+2,1)  ]
 
 
 
-mdl = Model(name='TSP')
+# mdl = Model(name='repeat')
+# x=mdl.binary_var_dict(idxM,0,1, "x")
+
+# u=mdl.integer_var_dict(idxd,1,N,'u')
+
+# f=mdl.integer_var_dict(idxf,0,999999, "f")
+# c=mdl.integer_var_dict(idxd,0,999999,'c')
+
+
+# for i in range(1,N+1,1):
+#       mdl.add_constraint(mdl.sum(x[i, j] for j in range(1,N+1,1)) == 1)
+     
+# for j in range(1,N+1,1):
+#       mdl.add_constraint(mdl.sum(x[i, j] for i in range(1,N+1,1)) == 1)
+     
+# for i in range(1,N+1,1):
+#     for j in range(1,N+1,1):
+#         if (i!=j) and (j!=A):
+#             mdl.add_constraint(u[i]-u[j]+N*x[i,j]<=N-1)
+            
+# for i in range(1,N+1,1):
+#     if i==A:
+#         mdl.add_constraint(u[i]==1)
+#         mdl.add_constraint(c[i]==0)    #c_A=0
+
+# #new constraints
+# for i in range(1,N+1,1):
+#     for j in range(1,N+1,1):
+#         mdl.add_constraint(f[i,j]<=H*x[i,j])
+
+# for j in range(1,N+1,1):
+#     if (j!=A):
+#         mdl.add_constraint(mdl.sum(f[i, j] for i in range(1,N+1,1))== c[j]+mdl.sum(f[j, k] for k in range(1,N+1,1)))
+# for k in range(1,N+1,1):
+#     if (k!=A):
+#         mdl.add_constraint(c[k]==  mdl.sum(M[i-1][j-1]*x[i,j]for i in range(1,N+1,1)
+#                                     for j in range (1,N+1,1)) )      
+
+# mdl.set_objective("min", 2*mdl.sum(M[i-1][j-1]*f[i,j]for i in range(1,N+1,1)
+#                                 for j in range (1,N+1,1)))
+
+
+mdl = Model(name='inverse')
 x=mdl.binary_var_dict(idxM,0,1, "x")
-#d=mdl.continuous_var_dict(idxd,'d')
+
 u=mdl.integer_var_dict(idxd,1,N,'u')
-#g=mdl.integer_var_dict(idxd,0,999999,'g')
+
 f=mdl.integer_var_dict(idxf,0,999999, "f")
 c=mdl.integer_var_dict(idxd,0,999999,'c')
+f2=mdl.integer_var_dict(idxf,0,999999, "f2")
+c2=mdl.integer_var_dict(idxd,0,999999,'c2')
+
+
+t=mdl.integer_var_dict(idxd,0,999999,'t')
 
 for i in range(1,N+1,1):
-     mdl.add_constraint(mdl.sum(x[i, j] for j in range(1,N+1,1)) == 1)
+      mdl.add_constraint(mdl.sum(x[i, j] for j in range(1,N+1,1)) == 1)
      
 for j in range(1,N+1,1):
-     mdl.add_constraint(mdl.sum(x[i, j] for i in range(1,N+1,1)) == 1)
+      mdl.add_constraint(mdl.sum(x[i, j] for i in range(1,N+1,1)) == 1)
      
 for i in range(1,N+1,1):
     for j in range(1,N+1,1):
@@ -226,30 +274,47 @@ for i in range(1,N+1,1):
     if i==A:
         mdl.add_constraint(u[i]==1)
         mdl.add_constraint(c[i]==0)    #c_A=0
+        mdl.add_constraint(t[i]==0) # time constraint
         
-#new constraints
+#Time constraints
+for k in range(1,N+1,1):
+    if (k!=A):
+        mdl.add_constraint(mdl.sum(M[i-1][j-1]*x[i,j]for i in range(1,N+1,1) for j in range (1,N+1,1))>=t[k]+M[k-1][A-1]*x[k,A])  
+for i in range(1,N+1,1):
+    for j in range(1,N+1,1):
+        if (i!=j)and (j!=A):
+            mdl.add_constraint(t[j]+H*(1-x[i,j])>=t[i]+M[i-1][j-1])   #t   
+        
+#products constraints
 for i in range(1,N+1,1):
     for j in range(1,N+1,1):
         mdl.add_constraint(f[i,j]<=H*x[i,j])
+        mdl.add_constraint(f2[i,j]<=H*x[i,j])
 
 for j in range(1,N+1,1):
     if (j!=A):
         mdl.add_constraint(mdl.sum(f[i, j] for i in range(1,N+1,1))== c[j]+mdl.sum(f[j, k] for k in range(1,N+1,1)))
+        
+for j in range(1,N+1,1): 
+    if (j!=A):    
+        mdl.add_constraint(mdl.sum(f2[i, j] for i in range(1,N+1,1))== -c2[j]+mdl.sum(f2[j, k] for k in range(1,N+1,1)))
+        
+
+     
 for k in range(1,N+1,1):
     if (k!=A):
-        mdl.add_constraint(c[k]==  mdl.sum(M[i-1][j-1]*x[i,j]for i in range(1,N+1,1)
-                                    for j in range (1,N+1,1)) )      
-#constraints efforts
-# mdl.add_constraint(g[1]== )
-# #M[u[N]-1][u[1]-1]
-# #mdl.sum(M[u[i]-1][u[i+1]-1] for i in range(1, N,1))+
-# for i in range(2,N+1,1):
-#     mdl.add_constraint((N-1)*g[i]==(N-1)*g[i-1]-g[1])
-    
-# mdl.set_objective("min", mdl.sum(M[u[i]-1][u[i+1]-1]*g[i]for i in range(1,N,1)))
-mdl.set_objective("min", 2*mdl.sum(M[i-1][j-1]*f[i,j]for i in range(1,N+1,1)
-                                for j in range (1,N+1,1)))
+        mdl.add_constraint(c[k] ==  2*mdl.sum(M[i-1][j-1]*x[i,j]for i in range(1,N+1,1) for j in range (1,N+1,1))-2*t[k]) 
+        mdl.add_constraint(c2[k]==2*t[k]) 
+        
+#test
+# mdl.add_constraint(u[3]==2)
+# mdl.add_constraint(u[2]==3)
+# mdl.add_constraint(u[5]==4)
+# # mdl.add_constraint(u[4]==5)
 
+mdl.set_objective("min", mdl.sum( M[i-1][j-1]*f[i,j]for i in range(1,N+1,1) for j in range (1,N+1,1))
+                  +mdl.sum( M[i-1][j-1]*f2[i,j]for i in range(1,N+1,1) for j in range (1,N+1,1)))
+                                 
 
 mdl.print_information()
 mdl.solve()
