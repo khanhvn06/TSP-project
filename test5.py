@@ -191,7 +191,7 @@ print("Total workforce of algo route 2=",sumforce(F_algo_2))
 print("Total workforce of algo =",sumforce(F_algo_1)+sumforce(F_algo_2))
 
 #MIP------------------------------------------------------------
-A=1
+A=5
 H=9999999
 for i in range(N):
     for j in range(N):
@@ -225,14 +225,20 @@ for i in range(1,N+1,1):
 for i in range(1,N+1,1):
     if i==A:
         mdl.add_constraint(u[i]==1)
+        mdl.add_constraint(c[i]==0)    #c_A=0
         
 #new constraints
 for i in range(1,N+1,1):
     for j in range(1,N+1,1):
         mdl.add_constraint(f[i,j]<=H*x[i,j])
 
-
-        
+for j in range(1,N+1,1):
+    if (j!=A):
+        mdl.add_constraint(mdl.sum(f[i, j] for i in range(1,N+1,1))== c[j]+mdl.sum(f[j, k] for k in range(1,N+1,1)))
+for k in range(1,N+1,1):
+    if (k!=A):
+        mdl.add_constraint(c[k]==  mdl.sum(M[i-1][j-1]*x[i,j]for i in range(1,N+1,1)
+                                    for j in range (1,N+1,1)) )      
 #constraints efforts
 # mdl.add_constraint(g[1]== )
 # #M[u[N]-1][u[1]-1]
@@ -241,7 +247,7 @@ for i in range(1,N+1,1):
 #     mdl.add_constraint((N-1)*g[i]==(N-1)*g[i-1]-g[1])
     
 # mdl.set_objective("min", mdl.sum(M[u[i]-1][u[i+1]-1]*g[i]for i in range(1,N,1)))
-mdl.set_objective("min", mdl.sum(M[i-1][j-1]*x[i,j]for i in range(1,N+1,1)
+mdl.set_objective("min", 2*mdl.sum(M[i-1][j-1]*f[i,j]for i in range(1,N+1,1)
                                 for j in range (1,N+1,1)))
 
 
