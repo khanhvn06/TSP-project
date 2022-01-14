@@ -1,5 +1,7 @@
 
 from docplex.mp.model import Model
+from docplex.mp.progress import *
+from docplex.mp.relax_linear import LinearRelaxer
 from math import *
 
 def is_float(n):
@@ -8,12 +10,26 @@ def is_float(n):
         return True
     except:
         return False
+def is_int(n):
+    try:
+        int(n)
+        return True
+    except:
+        return False
 
 def readdata(data): 
     T = []
     with open(data, "r") as file1:
         for line in file1.readlines():  
-            lst = [float(n) for n in line.split('  ') if is_float(n)]
+            lst = [float(n) for n in line.split() if is_float(n)]
+            T.append(lst)       
+    return T
+
+def readdataint(data): 
+    T = []
+    with open(data, "r") as file1:
+        for line in file1.readlines():  
+            lst = [int(n) for n in line.split('  ') if is_int(n)]
             T.append(lst)       
     return T
 def distance(x1,y1,x2,y2):
@@ -47,7 +63,7 @@ def readdatafromcoor(data):
 N=16
 
 A=1
-#M=readdata("five_d.txt")
+#M=readdata("fri26_d.txt")
 M=readdatafromcoor("ulysses16.tsp")
 # Check=readdata("att48_d.txt")
 
@@ -227,14 +243,14 @@ print("M=",M)
 # print("Total workforce of algo =",sumforce(F_algo_1)+sumforce(F_algo_2))
 
 #MIP------------------------------------------------------------
-maxd=0;
-for i in range(0,N,1):
-    for j in range(0,N,1):
-        M[i][j]=float(int(M[i][j]*10))
-        if M[i][j]>maxd:
-            maxd=M[i][j]
-         
-Limit=maxd*N*4
+# maxd=0;
+# for i in range(0,N,1):
+#     for j in range(0,N,1):
+#        # M[i][j]=round(M[i][j],1)
+#         if M[i][j]>maxd:
+#             maxd=M[i][j]
+# print("maxd=",maxd)         
+Limit=99999
 H=Limit
 print("H=",H)
 for i in range(N):
@@ -275,18 +291,22 @@ def solveTSP():
     
     mdl.set_objective("min", mdl.sum(M[i-1][j-1]*x[i, j] for i in range(1,N+1,1) for j in range(1,N+1,1)))
     mdl.print_information()
-      
-    mdl.solve()
+    
+    mdl.solve(clean_before_solve=True)
 
     mdl.print_solution()
 
     print(mdl.solve_details)
+
     
-def solveMIP():
+
+idxM = [(i, j) for i in range(1,N+1,1) for j in range(1,N+1,1) ]
+idxd = [i for i in range (1,N+1,1)  ]
+idxf = [(i, j) for i in range(1,N+1,1) for j in range(1,N+1,1) ]
+
+def solveMIP1():
    
-    idxM = [(i, j) for i in range(1,N+1,1) for j in range(1,N+1,1) ]
-    idxd = [i for i in range (1,N+1,1)  ]
-    idxf = [(i, j) for i in range(1,N+1,1) for j in range(1,N+1,1) ]
+    
     
 
 
@@ -296,8 +316,8 @@ def solveMIP():
 
     u=mdl.integer_var_dict(idxd,1,N,'u')
 
-    f=mdl.continuous_var_dict(idxf,0,Limit, "f")
-    c=mdl.continuous_var_dict(idxd,0,Limit,'c')
+    f=mdl.continuous_var_dict(idxf,0,99999, "f")
+    c=mdl.continuous_var_dict(idxd,0,99999,'c')
 
 
     for i in range(1,N+1,1):
@@ -332,24 +352,34 @@ def solveMIP():
     mdl.set_objective("min", 2*mdl.sum(M[i-1][j-1]*f[i,j]for i in range(1,N+1,1)
                                     for j in range (1,N+1,1)))
     mdl.print_information()
-      
-    mdl.solve()
+    #
+    # for i in range(1,N+1,1):
+    #     for j in range(1,N+1,1):
+    #         mdl.add_constraint(x[i,j]+1<=1)
+            
+    #mdl = LinearRelaxer.make_relaxed_model(mdl)
+    #mdl.parameters.mip.strategy.startalgorithm(0)
+    #mdl.parameters.lpmethod = 0
+    mdl.parameters.timelimit=7200
+    mdl.set_time_limit(7200) #The same
+    mdl.add_progress_listener(TextProgressListener())
+    mdl.solve(clean_before_solve=True)
 
     mdl.print_solution()
 
     print(mdl.solve_details)
 
 
-
+def solveMIP2():
     mdl = Model(name='inverse')
     x=mdl.binary_var_dict(idxM,0,1, "x")
 
     #u=mdl.integer_var_dict(idxd,1,N,'u')
 
-    f=mdl.continuous_var_dict(idxf,0,Limit, "f")
-    c=mdl.continuous_var_dict(idxd,0,Limit,'c')
-    f2=mdl.continuous_var_dict(idxf,0,Limit, "f2")
-    c2=mdl.continuous_var_dict(idxd,0,Limit,'c2')
+    f=mdl.continuous_var_dict(idxf,0,99999, "f")
+    c=mdl.continuous_var_dict(idxd,0,99999,'c')
+    f2=mdl.continuous_var_dict(idxf,0,99999, "f2")
+    c2=mdl.continuous_var_dict(idxd,0,99999,'c2')
 
 
     t=mdl.continuous_var_dict(idxd,0,Limit,'t')
@@ -406,10 +436,15 @@ def solveMIP():
     mdl.set_objective("min", mdl.sum( M[i-1][j-1]*f[i,j]for i in range(1,N+1,1) for j in range (1,N+1,1))
                       +mdl.sum( M[i-1][j-1]*f2[i,j]for i in range(1,N+1,1) for j in range (1,N+1,1)))
                                      
+    
 
+    #mdl = LinearRelaxer.make_relaxed_model(mdl)
     mdl.print_information()
-      
-    mdl.solve()
+    #mdl.parameters.emphasis.mip(2)
+    mdl.parameters.timelimit=7200
+    mdl.set_time_limit(7200) #The same
+    mdl.add_progress_listener(TextProgressListener())
+    mdl.solve(clean_before_solve=True)
 
     mdl.print_solution()
    
@@ -417,5 +452,7 @@ def solveMIP():
     print(mdl.solve_details)
     
     
+    
 solveTSP()
-solveMIP()
+#solveMIP1()
+solveMIP2()
